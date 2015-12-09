@@ -28,41 +28,90 @@
 				</div>
 				<h5>标题图片</h5>
 				<div class="mui-input-row">
-					<img src="" style="width: 100px; height: 100px;"/>			
-					<button type="button" class="mui-btn-blue" style="margin-top: 60px;">浏览图片</button>
-				</div>				
+					<img src="" id="fileimg" style="width: 100px; height: 100px;" />
+					<input type='button' id="filebtn" class='btn' value='浏览...' />
+					<input type="file" id="fileField" style="display:none;" />
+				</div>
 				<h5>文章内容</h5>
 				<div class="mui-input-row">
 					<textarea id="neirong" rows="5" placeholder="文章内容可以是纯文本，也可以是富文本。"></textarea>
 				</div>
 
 				<div class="">
-					<button id="qr" onclick="ajax()" type="button" class="mui-btn mui-btn-primary">确认</button>&nbsp;&nbsp;
-					<button type="button" class="mui-btn mui-btn-danger" onclick="return false;">取消</button>
+					<button id="qrbtn" type="button" class="mui-btn mui-btn-primary">确认</button>&nbsp;&nbsp;
+					<button id="qxbtn" type="button" class="mui-btn mui-btn-danger" onclick="return false;">取消</button>
 				</div>
 
 			</div>
 		</div>
 		<!------------------------------------------->
-		<script type="text/javascript" src="js/seajs/sea.js"></script>
+
 		<script type="text/javascript" src="js/mui.min.js"></script>
 		<script type="text/javascript" src="js/bmob/bmob-min.js"></script>
 		<script>
-			//seajs.use("js/view/index")
-			Bmob.initialize("2ddb608bcec0f04b389200311dce7ef4", "aab9208610642810731c21ad3d5fc233");
+			var viewBtn = document.getElementById('filebtn');
+			var viewFiles = document.getElementById("fileField");
+			var viewImg = document.getElementById("fileimg");
+			var qrBtns = document.getElementById("qrbtn");
+			var bt = document.getElementById("biaoti");
+			var jy = document.getElementById("jianyao");
+			var nr = document.getElementById("neirong");
+			viewBtn.addEventListener('click', function() {
+				viewFiles.click();
+			});
+			viewFiles.addEventListener('change', function() {
+				if (/.*\.jpg$/.test(viewFiles.value)) {
+					viewFile(this.files[0]);
+				} else {
+					alert('请选择jpg格式的图片文件!');
+				}
+			}, false);
+			qrBtns.addEventListener('click', function() {
+				sctp();
+			});
 			/**
-			 *ajax网络请求函数
+			 * 浏览图片
 			 */
-			var ajax = function() {
-				var bt = document.getElementById("biaoti").value;
-				var jy = document.getElementById("jianyao").value;
-				var nr = document.getElementById("neirong").value;
+			function viewFile(file) {
+				//通过file.size可以取得图片大小
+				var reader = new FileReader();
+				reader.onload = function(evt) {
+					viewImg.src = evt.target.result;
+				}
+				reader.readAsDataURL(file);
+			};
+			/**
+			 *上传图片
+			 */
+			var sctp = function() {
+				if (viewFiles.files.length > 0) {
+					var file = viewFiles.files[0];
+					var name = file.name;
+					var file = new Bmob.File(name, file);
+					file.save().then(function(obj) {
+						//alert("上传成功，地址为： " + obj.url());
+						ajax(obj.url());
+					}, function(error) {
+						alert("上传图片时发生错误，请重新提交！")
+					});
+				}
+			};
+			/**
+			 *保存内容
+			 */
+			Bmob.initialize("2ddb608bcec0f04b389200311dce7ef4", "aab9208610642810731c21ad3d5fc233");
+			var ajax = function(imgurl) {
 				//创建新的Bmob.Object子类
 				var db = Bmob.Object.extend("bmob_db_wenZhang");
 				var field = new db();
-				field.set("db_title", bt);
-				field.set("db_description", jy);
-				field.set("db_details", nr);
+				field.set("db_title", bt.value);
+				field.set("db_description", jy.value);
+				field.set("db_details", nr.value);
+				field.set("db_image", imgurl);
+				field.set("db_userId", "bmob");
+				field.set("db_collectionCount", 0); //收藏
+				field.set("db_readCount", 0); //阅读
+				field.set("db_commentCount", 0); //评论
 				//保存
 				field.save(null, {
 					success: success,
@@ -74,6 +123,7 @@
 			 */
 			var success = function(results) {
 				alert('调试：保存完成');
+				bt.value = nr.value = jy.value = viewImg.src = "";
 			};
 			/**
 			 *异常处理函数 
